@@ -5,3 +5,8 @@
 
 
 ![image-alt-text](screen2.png)
+
+
+For ollama, since it is running on my local host, I had to allow CORS. 
+
+![image-alt-text](screen3.png)
