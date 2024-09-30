@@ -10,3 +10,4 @@
 For ollama, since it is running on my local host, I had to allow CORS. 
 
 ![image-alt-text](screen3.png)
+cors-plugin by Raghudevan
