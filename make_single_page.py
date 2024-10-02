@@ -64,21 +64,21 @@ def main():
         error_exit(f"JavaScript file '{JS_FILE}' does not exist.")
     
     # Create a backup of the original HTML file
-    if not os.path.exists(BACKUP_FILE):
-        try:
-            shutil.copyfile(INPUT_FILE, BACKUP_FILE)
-            print(f"Backup created: '{BACKUP_FILE}'")
-        except Exception as e:
-            error_exit(f"Unable to create backup of '{INPUT_FILE}': {e}")
-    else:
-        print(f"Backup already exists: '{BACKUP_FILE}'")
-    
+#    if not os.path.exists(BACKUP_FILE):
+#        try:
+#            shutil.copyfile(INPUT_FILE, BACKUP_FILE)
+#            print(f"Backup created: '{BACKUP_FILE}'")
+#        except Exception as e:
+#            error_exit(f"Unable to create backup of '{INPUT_FILE}': {e}")
+#    else:
+#        print(f"Backup already exists: '{BACKUP_FILE}'")
+#    
     # Read the contents of the JavaScript file as a single line
     js_raw_content = read_file(JS_FILE)
     js_single_line = js_raw_content.replace('\n', '').replace('\r', '').strip()
     
     # Read the contents of the original HTML file from the backup
-    html_content = read_file(BACKUP_FILE)
+    html_content = read_file(INPUT_FILE)
     
     # Inline the JavaScript into the HTML content
     updated_html = inline_js(html_content, js_single_line, JS_FILE)
