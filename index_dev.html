@@ -289,6 +289,25 @@
             word-wrap: break-word;
             white-space: pre-wrap;
         }
+
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: #4a90e2;
+            border: none;
+            color: white;
+            padding: 5px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 0.8em;
+        }
+        
+        .raw-output-btn {
+            position: relative;
+            margin-top: 5px;
+            font-size: 0.8em;
+        }
     </style>
 </head>
 
@@ -563,15 +582,65 @@ function handleImageUpload() {
         this.value = '';
     }
 }
-
 function addMessage(text, role) {
+    console.log(`Received text of type: ${typeof text}`);
+    console.log(`Received text object:`, text);
+
+    let content = '';
+    if (typeof text === 'string') {
+        content = text;
+    } else if (typeof text === 'object') {
+        if ('content' in text) {
+            content = text.content;
+        } else if ('message' in text) {
+            content = text.message;
+        } else {
+            console.error('Unknown text object structure:', text);
+            return;
+        }
+    } else {
+        console.error('Unsupported text type:', typeof text);
+        return;
+    }
+
+    console.log(`Extracted content: ${content}`);
+
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${role}`;
     if (role === 'assistant') {
-        msgDiv.innerHTML = parseMarkdown(typeof text === 'string' ? text : JSON.stringify(text));
+        msgDiv.innerHTML = parseMarkdown(content);
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-btn';
+        copyButton.textContent = 'Copy';
+        copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(content).then(() => {
+                copyButton.textContent = 'Copied!';
+                setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        });
+        msgDiv.appendChild(copyButton);
+
+      
+            const rawOutputButton = document.createElement('button');
+            rawOutputButton.className = 'copy-btn raw-output-btn';
+            rawOutputButton.textContent = 'Copy Raw Output';
+            rawOutputButton.addEventListener('click', () => {
+                navigator.clipboard.writeText(content).then(() => {
+                    rawOutputButton.textContent = 'Copied!';
+                    setTimeout(() => { rawOutputButton.textContent = 'Copy Raw Output'; }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+            });
+            msgDiv.appendChild(rawOutputButton);
+        
+      
     } else {
-        msgDiv.textContent = text;
+        msgDiv.textContent = content;
     }
+
     chatDiv.appendChild(msgDiv);
     chatDiv.scrollTop = chatDiv.scrollHeight;
     saveChat();
@@ -588,7 +657,6 @@ function addImageMessage(src, role) {
     chatDiv.scrollTop = chatDiv.scrollHeight;
     saveChat();
 }
-
 async function fetchResponse(userMessage) {
     const config = configurations[selectedConfigIndex];
     if (!config) {
@@ -621,7 +689,7 @@ async function fetchResponse(userMessage) {
 
         const data = await response.json();
         const reply = data.choices[0].message.content;
-        chatHistory.push({ role: 'assistant', content: reply });
+        chatHistory.push({ role: 'assistant', content: reply, rawOutput: JSON.stringify(data.choices[0].message, null, 2) });
         renderChat();
     } catch (error) {
         console.error(error);
@@ -644,6 +712,7 @@ function renderChat() {
         } else {
             addMessage(msg.content, msg.role);
         }
+       
     });
     chatDiv.scrollTop = chatDiv.scrollHeight;
 }
