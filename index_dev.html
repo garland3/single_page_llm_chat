@@ -79,6 +79,7 @@
             cursor: pointer;
             border-radius: 3px;
             font-size: 0.8em;
+            display: inline-block;
         }
         .add-config {
             background-color: #4a90e2;
@@ -90,6 +91,7 @@
             border-radius: 5px;
             margin-top: 10px;
             font-size: 1em;
+            display: inline-block;
         }
         /* New Close Button Styling */
         .close-menu-alt {
@@ -102,6 +104,7 @@
             border-radius: 5px;
             font-size: 1em;
             margin-top: 10px;
+            display: inline-block;
         }
         .close-menu {
             display: none; /* Existing Close Button hidden on large screens */
@@ -289,7 +292,7 @@
             word-wrap: break-word;
             white-space: pre-wrap;
         }
-
+        
         .copy-btn {
             position: absolute;
             top: 5px;
@@ -392,6 +395,7 @@ let editingIndex = null;
 let chatHistory = JSON.parse(localStorage.getItem('llm_chat_history')) || [];
 
 // Initialize
+
 function init() {
     renderConfigs();
     if (configurations.length === 0) {
@@ -405,6 +409,7 @@ function init() {
     }
     renderChat();
 }
+
 
 // Event Listeners
 hamburger.addEventListener('click', () => menu.classList.toggle('open'));
@@ -480,7 +485,6 @@ function capitalize(word) {
     return word.length === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1);
 }
 
-// Configuration Functions
 function openConfigModal(index = null) {
     configModal.style.display = 'block';
     isEditing = index !== null;
@@ -525,6 +529,8 @@ function renderConfigs() {
         div.innerHTML = `
             <h3>${config.name}</h3>
             <p><strong>URL:</strong> ${config.url}<br><strong>Model:</strong> ${config.model}</p>
+            <button class="edit-btn" title="Edit Configuration">Edit</button>
+            <button class="copy-config-btn" title="Copy Configuration">Copy</button>
             <button class="delete-btn" title="Delete Configuration">Delete</button>
         `;
 
@@ -533,10 +539,57 @@ function renderConfigs() {
             deleteConfig(index);
         });
 
-        div.addEventListener('click', () => selectConfig(index));
+        div.querySelector('.edit-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openConfigModal(index);
+        });
+
+        div.querySelector('.copy-config-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyConfiguration(index);
+        });
+
+        // Add this event listener
+        div.addEventListener('click', (e) => {
+            if (e.target.classList.contains('config-item') || e.target.classList.contains('config-item-selected')) {
+                selectConfig(index);
+            }
+        });
+
+        // Add this to allow config item text to be editable
+        div.querySelector('h3').addEventListener('click', (e) => {
+            if (e.target.tagName.toLowerCase() === 'h3') {
+                const configName = e.target.textContent;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = configName;
+                e.target.replaceWith(input);
+
+                input.addEventListener('blur', (e) => {
+                    const inputText = e.target.value;
+                    configurations[index].name = inputText;
+                    localStorage.setItem('llm_configs', JSON.stringify(configurations));
+                    e.target.replaceWith(inputText);
+                });
+            }
+        });
+
         configsDiv.appendChild(div);
     });
 }
+
+
+function copyConfiguration(index) {
+    const configToCopy = configurations[index];
+    const copiedConfig = {
+        ...configToCopy,
+        name: `${configToCopy.name} (Copy)`
+    };
+    configurations.push(copiedConfig);
+    localStorage.setItem('llm_configs', JSON.stringify(configurations));
+    renderConfigs();
+}
+
 
 function selectConfig(index) {
     selectedConfigIndex = index;
@@ -583,27 +636,16 @@ function handleImageUpload() {
     }
 }
 function addMessage(text, role) {
-    console.log(`Received text of type: ${typeof text}`);
-    console.log(`Received text object:`, text);
-
-    let content = '';
+  let content = '';
     if (typeof text === 'string') {
         content = text;
     } else if (typeof text === 'object') {
-        if ('content' in text) {
-            content = text.content;
-        } else if ('message' in text) {
-            content = text.message;
-        } else {
-            console.error('Unknown text object structure:', text);
-            return;
-        }
+        content = text.content || text.message || '';
+        if (!content) console.error('Unknown text object structure:', text);
     } else {
         console.error('Unsupported text type:', typeof text);
         return;
     }
-
-    console.log(`Extracted content: ${content}`);
 
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${role}`;
@@ -616,31 +658,22 @@ function addMessage(text, role) {
             navigator.clipboard.writeText(content).then(() => {
                 copyButton.textContent = 'Copied!';
                 setTimeout(() => { copyButton.textContent = 'Copy'; }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-            });
+            }).catch(err => { console.error('Failed to copy:', err); });
         });
         msgDiv.appendChild(copyButton);
-
-      
-            const rawOutputButton = document.createElement('button');
-            rawOutputButton.className = 'copy-btn raw-output-btn';
-            rawOutputButton.textContent = 'Copy Raw Output';
-            rawOutputButton.addEventListener('click', () => {
-                navigator.clipboard.writeText(content).then(() => {
-                    rawOutputButton.textContent = 'Copied!';
-                    setTimeout(() => { rawOutputButton.textContent = 'Copy Raw Output'; }, 2000);
-                }).catch(err => {
-                    console.error('Failed to copy:', err);
-                });
-            });
-            msgDiv.appendChild(rawOutputButton);
-        
-      
+        const rawOutputButton = document.createElement('button');
+        rawOutputButton.className = 'copy-btn raw-output-btn';
+        rawOutputButton.textContent = 'Copy Raw Output';
+        rawOutputButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(content).then(() => {
+                rawOutputButton.textContent = 'Copied!';
+                setTimeout(() => { rawOutputButton.textContent = 'Copy Raw Output'; }, 2000);
+            }).catch(err => { console.error('Failed to copy:', err); });
+        });
+        msgDiv.appendChild(rawOutputButton);
     } else {
         msgDiv.textContent = content;
     }
-
     chatDiv.appendChild(msgDiv);
     chatDiv.scrollTop = chatDiv.scrollHeight;
     saveChat();
@@ -739,6 +772,7 @@ function clearChat() {
         chatHistory = [];
         saveChat();
         renderChat();
+        messageInput.focus();
     }
 }
 
